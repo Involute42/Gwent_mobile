@@ -131,7 +131,7 @@ html,body{margin:0!important;padding:0!important;width:100%!important;overflow-x
 .rowlane.drop-ready{background:linear-gradient(90deg,#31502b,#17251a)!important;transform:scale(1.006)}
 .card[draggable="true"]{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
 .card.dragging{opacity:.55;transform:scale(.96)}
-.drag-ghost{position:fixed;z-index:99999;pointer-events:none;width:100px;height:145px;opacity:.9;transform:rotate(3deg);box-shadow:0 10px 30px #000b}
+.drag-ghost{position:fixed;left:0;top:0;z-index:99999;pointer-events:none;width:100px;height:145px;opacity:.92;transform:translate3d(-200px,-200px,0);will-change:transform;contain:layout paint;box-shadow:0 10px 30px #000b}
 @media(max-width:850px){.rowlane.drop-valid{box-shadow:inset 0 0 0 2px #a7d879,0 0 13px #7fc65c88!important}.rowlane.drop-invalid{opacity:.35}}
 </style></head><body><main class="game"><header class="top"><div class="brand"><small>O JOGO DE CARTAS DOS REINOS DO NORTE</small><h1>GWENT</h1><div class="sub">Duelo de tavernas · edição de mesa</div></div><div class="roundbox"><div class="sub">RODADA <span id="round">1</span> / 3</div><b><span id="winsP">0</span> — <span id="winsE">0</span></b><div class="sub">VOCÊ · NILFGAARD</div></div></header><section class="battle"><aside class="faction"><div class="faction-card"><div class="sigil">☼</div><h3>Império de Nilfgaard</h3><p>ADVERSÁRIO</p><div class="score" id="enemyTotal">0</div><div class="gems" id="enemyGems">◆ ◆</div><p id="enemyCount">6 cartas na mão</p></div></aside><section class="board"><div class="side-label">EXÉRCITO NILFGAARDIANO</div><div class="rows" id="enemyRows"></div><div class="side-label">REINOS DO NORTE · SUAS TROPAS</div><div class="rows" id="playerRows"></div></section><aside class="faction"><div class="faction-card"><div class="sigil" style="color:#79a9d5">⚔</div><h3>Reinos do Norte</h3><p>VOCÊ</p><div class="score" id="playerTotal">0</div><div class="gems" id="playerGems">◆ ◆</div><p id="playerCount">6 cartas na mão</p></div></aside></section><section class="hand-area"><div class="hand-head"><h2>Sua mão</h2><span>ESCOLHA UMA CARTA PARA JOGAR</span></div><div class="hand" id="hand"></div><div class="actions"><div class="status" id="status">A partida começou. Escolha sua primeira carta.</div><button class="btn" id="pass">PASSAR RODADA</button><button class="btn primary" id="next" hidden>PRÓXIMA RODADA →</button><button class="btn primary" id="restart" hidden>NOVA PARTIDA</button></div></section><div class="legend">Estratégia importa: vença duas rodadas. Cartas de herói são resistentes a efeitos especiais nesta versão.</div></main><script>
 const original=[
@@ -164,31 +164,57 @@ function pass(){if(state.passed||state.ended||state.turn!=='player')return;state
 function finishIfBothPassed(){if(!state.passed||!state.enemyPassed)return;let p=sum(state.p),e=sum(state.e);if(p>e)state.pWins++;else if(e>p)state.eWins++;else{state.pWins++;state.eWins++;}state.ended=true;let result=p===e?`Empate na rodada (${p} a ${e}).`:p>e?`Você venceu a rodada por ${p} a ${e}.`:`Nilfgaard venceu a rodada por ${e} a ${p}.`;if(state.pWins>=2||state.eWins>=2||state.round===3){result+=state.pWins===state.eWins?' Partida empatada!':state.pWins>state.eWins?' Vitória na partida!':' Derrota na partida.';}else result+=' A rodada terminou. Veja o placar e avance quando estiver pronto.';say(result);render()}
 function next(){if(!state.ended||state.round>=3||state.pWins>=2||state.eWins>=2)return;state.round++;state.p=[];state.e=[];state.passed=false;state.enemyPassed=false;state.ended=false;state.turn='player';say('Rodada '+state.round+'. As cartas restantes continuam na mão; escolha sua jogada.');render()}
 
-// Pointer-based drag support for touchscreens (Android/iOS).
+// Lightweight pointer drag: animate with transforms and update row highlight only when target changes.
 (function installTouchDrag(){
- let active=null,ghost=null,startX=0,startY=0,moved=false;
+ let active=null,ghost=null,startX=0,startY=0,moved=false,lastTarget=null,frame=0,lastPoint=null;
  const hand=document.getElementById('hand');
+ const rows=()=>document.querySelectorAll('#playerRows .rowlane');
+ function setTarget(target,row){
+   if(target===lastTarget)return;
+   rows().forEach(el=>el.classList.toggle('drop-ready',el===target&&+el.dataset.row===row));
+   lastTarget=target;
+ }
+ function moveFrame(){
+   frame=0;if(!active||!moved||!lastPoint)return;
+   const {x,y}=lastPoint;
+   if(ghost)ghost.style.transform='translate3d('+(x-50)+'px,'+(y-72)+'px,0) rotate(2deg)';
+   const c=cardForDrag(active.id);
+   const target=document.elementFromPoint(x,y)?.closest('#playerRows .rowlane')||null;
+   if(c)setTarget(target,c.r);
+ }
  hand.addEventListener('pointerdown',e=>{
    const card=e.target.closest('.card');if(!card||e.pointerType==='mouse')return;
    if(state.passed||state.ended||state.turn!=='player')return;
-   active={id:+card.dataset.id,card,pointerId:e.pointerId};try{hand.setPointerCapture(e.pointerId)}catch(_){}startX=e.clientX;startY=e.clientY;moved=false;
+   active={id:+card.dataset.id,card,pointerId:e.pointerId};startX=e.clientX;startY=e.clientY;moved=false;lastTarget=null;lastPoint={x:e.clientX,y:e.clientY};
  },{passive:true});
  hand.addEventListener('pointermove',e=>{
    if(!active||active.pointerId!==e.pointerId)return;
-   if(!moved&&Math.hypot(e.clientX-startX,e.clientY-startY)<9)return;
+   lastPoint={x:e.clientX,y:e.clientY};
+   if(!moved&&Math.hypot(e.clientX-startX,e.clientY-startY)<7)return;
    const c=cardForDrag(active.id);if(!c)return;
    moved=true;window.gwentWasDragged=true;window.gwentDraggingId=active.id;
    active.card.classList.add('dragging');
-   if(!ghost){ghost=active.card.cloneNode(true);ghost.classList.add('drag-ghost');document.body.appendChild(ghost);highlightRows(c.r);}
-   ghost.style.left=(e.clientX-50)+'px';ghost.style.top=(e.clientY-72)+'px';
-   const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('#playerRows .rowlane');
-   document.querySelectorAll('#playerRows .rowlane').forEach(row=>row.classList.toggle('drop-ready',!!target&&row===target&&+row.dataset.row===c.r));
+   if(!ghost){
+     ghost=active.card.cloneNode(true);ghost.classList.add('drag-ghost');
+     ghost.style.left='0';ghost.style.top='0';document.body.appendChild(ghost);
+     highlightRows(c.r);
+   }
+   if(!frame)frame=requestAnimationFrame(moveFrame);
  },{passive:true});
  const finish=e=>{
    if(!active||active.pointerId!==e.pointerId)return;
-   if(moved){const c=cardForDrag(active.id);const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('#playerRows .rowlane');if(c&&target&&+target.dataset.row===c.r)play(active.id,+target.dataset.row);else if(c)say('Arraste a carta até a fileira destacada: '+laneNames[c.r]+'.');}
-   active.card.classList.remove('dragging');if(ghost){ghost.remove();ghost=null;}clearRowHighlights();active=null;
-   if(moved){setTimeout(()=>window.gwentWasDragged=false,250);}
+   if(frame){cancelAnimationFrame(frame);frame=0;}
+   if(moved){
+     const c=cardForDrag(active.id);
+     const x=e.clientX,y=e.clientY;
+     const target=document.elementFromPoint(x,y)?.closest('#playerRows .rowlane');
+     if(c&&target&&+target.dataset.row===c.r)play(active.id,+target.dataset.row);
+     else if(c)say('Solte a carta na fileira destacada: '+laneNames[c.r]+'.');
+   }
+   active.card.classList.remove('dragging');
+   if(ghost){ghost.remove();ghost=null;}
+   clearRowHighlights();active=null;lastTarget=null;lastPoint=null;
+   if(moved)setTimeout(()=>window.gwentWasDragged=false,180);
  };
  hand.addEventListener('pointerup',finish);hand.addEventListener('pointercancel',finish);
 })();
