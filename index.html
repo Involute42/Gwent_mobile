@@ -119,7 +119,7 @@ html,body{margin:0!important;padding:0!important;width:100%!important;overflow-x
 .unit{flex:0 0 37px!important;width:37px!important;height:48px!important;border-width:1px!important;border-radius:2px!important}.unit span{font-size:7px!important;line-height:1.05!important;min-height:16px!important;padding:2px 0!important}.unit b{top:2px!important;left:2px!important;width:15px!important;height:15px!important;font-size:9px!important}.empty{font-size:10px!important;padding:3px!important}
 .hand-area{order:2!important;display:block!important;width:100%!important;min-width:0!important;padding:10px 8px 12px!important;border-top:2px solid #8d6837!important;background:linear-gradient(180deg,#24190f,#0c0b09 35%)!important;overflow:hidden!important}
 .hand-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;margin-bottom:7px!important}.hand-head h2{font-size:16px!important;margin:0!important}.hand-head span{font-size:8px!important;letter-spacing:.5px!important;text-align:right!important}
-.hand{display:flex!important;flex-wrap:nowrap!important;gap:7px!important;width:100%!important;max-width:100%!important;overflow-x:auto!important;padding:3px 2px 11px!important;scroll-snap-type:x mandatory!important;overscroll-behavior-x:contain!important}
+.hand{touch-action:none!important;display:flex!important;flex-wrap:nowrap!important;gap:7px!important;width:100%!important;max-width:100%!important;overflow-x:auto!important;padding:3px 2px 11px!important;scroll-snap-type:x mandatory!important;overscroll-behavior-x:contain!important}
 .card{flex:0 0 96px!important;width:96px!important;height:145px!important;min-width:96px!important;padding:4px!important;border-radius:3px!important;scroll-snap-align:start!important}.portrait{flex:1!important;min-height:0!important;background-size:cover!important;background-position:center 25%!important}.power{top:5px!important;left:5px!important;width:23px!important;height:23px!important;font-size:13px!important}.card-name{font-size:10px!important;line-height:1.1!important;min-height:26px!important;padding:5px 0 2px!important}.card-type{font-size:8px!important;letter-spacing:.7px!important}
 .actions{display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin-top:5px!important}.status{flex:1 0 100%!important;min-height:30px!important;font-size:10px!important;line-height:1.35!important;margin:0!important}.btn{flex:1 1 42%!important;min-width:0!important;padding:11px 7px!important;font-size:10px!important;letter-spacing:.5px!important}.legend{order:3!important;display:block!important;padding:7px 10px 10px!important;font-size:9px!important;line-height:1.4!important}
 }
@@ -131,7 +131,7 @@ html,body{margin:0!important;padding:0!important;width:100%!important;overflow-x
 .rowlane.drop-ready{background:linear-gradient(90deg,#31502b,#17251a)!important;transform:scale(1.006)}
 .card[draggable="true"]{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
 .card.dragging{opacity:.55;transform:scale(.96)}
-.drag-ghost{position:fixed;left:0;top:0;z-index:99999;pointer-events:none;width:100px;height:145px;opacity:.92;transform:translate3d(-200px,-200px,0);will-change:transform;contain:layout paint;box-shadow:0 10px 30px #000b}
+.drag-ghost{position:fixed;left:0;top:0;margin:0!important;z-index:99999;pointer-events:none;width:100px;height:145px;opacity:.92;transform:translate3d(-200px,-200px,0);will-change:transform;contain:layout paint;box-shadow:0 10px 30px #000b}
 @media(max-width:850px){.rowlane.drop-valid{box-shadow:inset 0 0 0 2px #a7d879,0 0 13px #7fc65c88!important}.rowlane.drop-invalid{opacity:.35}}
 </style></head><body><main class="game"><header class="top"><div class="brand"><small>O JOGO DE CARTAS DOS REINOS DO NORTE</small><h1>GWENT</h1><div class="sub">Duelo de tavernas · edição de mesa</div></div><div class="roundbox"><div class="sub">RODADA <span id="round">1</span> / 3</div><b><span id="winsP">0</span> — <span id="winsE">0</span></b><div class="sub">VOCÊ · NILFGAARD</div></div></header><section class="battle"><aside class="faction"><div class="faction-card"><div class="sigil">☼</div><h3>Império de Nilfgaard</h3><p>ADVERSÁRIO</p><div class="score" id="enemyTotal">0</div><div class="gems" id="enemyGems">◆ ◆</div><p id="enemyCount">6 cartas na mão</p></div></aside><section class="board"><div class="side-label">EXÉRCITO NILFGAARDIANO</div><div class="rows" id="enemyRows"></div><div class="side-label">REINOS DO NORTE · SUAS TROPAS</div><div class="rows" id="playerRows"></div></section><aside class="faction"><div class="faction-card"><div class="sigil" style="color:#79a9d5">⚔</div><h3>Reinos do Norte</h3><p>VOCÊ</p><div class="score" id="playerTotal">0</div><div class="gems" id="playerGems">◆ ◆</div><p id="playerCount">6 cartas na mão</p></div></aside></section><section class="hand-area"><div class="hand-head"><h2>Sua mão</h2><span>ESCOLHA UMA CARTA PARA JOGAR</span></div><div class="hand" id="hand"></div><div class="actions"><div class="status" id="status">A partida começou. Escolha sua primeira carta.</div><button class="btn" id="pass">PASSAR RODADA</button><button class="btn primary" id="next" hidden>PRÓXIMA RODADA →</button><button class="btn primary" id="restart" hidden>NOVA PARTIDA</button></div></section><div class="legend">Estratégia importa: vença duas rodadas. Cartas de herói são resistentes a efeitos especiais nesta versão.</div></main><script>
 const original=[
@@ -164,59 +164,78 @@ function pass(){if(state.passed||state.ended||state.turn!=='player')return;state
 function finishIfBothPassed(){if(!state.passed||!state.enemyPassed)return;let p=sum(state.p),e=sum(state.e);if(p>e)state.pWins++;else if(e>p)state.eWins++;else{state.pWins++;state.eWins++;}state.ended=true;let result=p===e?`Empate na rodada (${p} a ${e}).`:p>e?`Você venceu a rodada por ${p} a ${e}.`:`Nilfgaard venceu a rodada por ${e} a ${p}.`;if(state.pWins>=2||state.eWins>=2||state.round===3){result+=state.pWins===state.eWins?' Partida empatada!':state.pWins>state.eWins?' Vitória na partida!':' Derrota na partida.';}else result+=' A rodada terminou. Veja o placar e avance quando estiver pronto.';say(result);render()}
 function next(){if(!state.ended||state.round>=3||state.pWins>=2||state.eWins>=2)return;state.round++;state.p=[];state.e=[];state.passed=false;state.enemyPassed=false;state.ended=false;state.turn='player';say('Rodada '+state.round+'. As cartas restantes continuam na mão; escolha sua jogada.');render()}
 
-// Lightweight pointer drag: animate with transforms and update row highlight only when target changes.
+// Stable touch drag: capture pointer, avoid browser scroll cancellation, and commit on pointerup.
 (function installTouchDrag(){
- let active=null,ghost=null,startX=0,startY=0,moved=false,lastTarget=null,frame=0,lastPoint=null;
+ let active=null,ghost=null,startX=0,startY=0,moved=false,lastTarget=null,raf=0,point=null;
  const hand=document.getElementById('hand');
- const rows=()=>document.querySelectorAll('#playerRows .rowlane');
- function setTarget(target,row){
+ const rowEls=()=>Array.from(document.querySelectorAll('#playerRows .rowlane'));
+ const paintTarget=(target,row)=>{
    if(target===lastTarget)return;
-   rows().forEach(el=>el.classList.toggle('drop-ready',el===target&&+el.dataset.row===row));
+   rowEls().forEach(el=>el.classList.toggle('drop-ready',el===target&&+el.dataset.row===row));
    lastTarget=target;
- }
- function moveFrame(){
-   frame=0;if(!active||!moved||!lastPoint)return;
-   const {x,y}=lastPoint;
+ };
+ const frame=()=>{
+   raf=0;if(!active||!moved||!point)return;
+   const {x,y}=point;
    if(ghost)ghost.style.transform='translate3d('+(x-50)+'px,'+(y-72)+'px,0) rotate(2deg)';
    const c=cardForDrag(active.id);
    const target=document.elementFromPoint(x,y)?.closest('#playerRows .rowlane')||null;
-   if(c)setTarget(target,c.r);
- }
+   if(c)paintTarget(target,c.r);
+ };
+ const cleanup=()=>{
+   if(raf){cancelAnimationFrame(raf);raf=0;}
+   if(active?.card)active.card.classList.remove('dragging');
+   if(ghost){ghost.remove();ghost=null;}
+   clearRowHighlights();active=null;lastTarget=null;point=null;
+ };
  hand.addEventListener('pointerdown',e=>{
-   const card=e.target.closest('.card');if(!card||e.pointerType==='mouse')return;
+   const card=e.target.closest('.card');
+   if(!card||e.pointerType==='mouse'||e.button!==0)return;
    if(state.passed||state.ended||state.turn!=='player')return;
-   active={id:+card.dataset.id,card,pointerId:e.pointerId};startX=e.clientX;startY=e.clientY;moved=false;lastTarget=null;lastPoint={x:e.clientX,y:e.clientY};
- },{passive:true});
+   active={id:+card.dataset.id,card,pointerId:e.pointerId};
+   startX=e.clientX;startY=e.clientY;moved=false;lastTarget=null;point={x:e.clientX,y:e.clientY};
+   try{hand.setPointerCapture(e.pointerId)}catch(_){}
+ },{passive:false});
  hand.addEventListener('pointermove',e=>{
    if(!active||active.pointerId!==e.pointerId)return;
-   lastPoint={x:e.clientX,y:e.clientY};
-   if(!moved&&Math.hypot(e.clientX-startX,e.clientY-startY)<7)return;
+   if(e.cancelable)e.preventDefault();
+   point={x:e.clientX,y:e.clientY};
+   if(!moved&&Math.hypot(e.clientX-startX,e.clientY-startY)<4)return;
    const c=cardForDrag(active.id);if(!c)return;
-   moved=true;window.gwentWasDragged=true;window.gwentDraggingId=active.id;
-   active.card.classList.add('dragging');
-   if(!ghost){
+   if(!moved){
+     moved=true;window.gwentWasDragged=true;window.gwentDraggingId=active.id;
+     active.card.classList.add('dragging');
      ghost=active.card.cloneNode(true);ghost.classList.add('drag-ghost');
-     ghost.style.left='0';ghost.style.top='0';document.body.appendChild(ghost);
-     highlightRows(c.r);
+     ghost.style.left='0px';ghost.style.top='0px';
+     ghost.style.transform='translate3d('+(e.clientX-50)+'px,'+(e.clientY-72)+'px,0)';
+     document.body.appendChild(ghost);highlightRows(c.r);
    }
-   if(!frame)frame=requestAnimationFrame(moveFrame);
- },{passive:true});
+   if(!raf)raf=requestAnimationFrame(frame);
+ },{passive:false});
  const finish=e=>{
    if(!active||active.pointerId!==e.pointerId)return;
-   if(frame){cancelAnimationFrame(frame);frame=0;}
+   if(e.cancelable)e.preventDefault();
+   if(raf){cancelAnimationFrame(raf);raf=0;}
    if(moved){
      const c=cardForDrag(active.id);
-     const x=e.clientX,y=e.clientY;
-     const target=document.elementFromPoint(x,y)?.closest('#playerRows .rowlane');
+     const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('#playerRows .rowlane')||null;
      if(c&&target&&+target.dataset.row===c.r)play(active.id,+target.dataset.row);
-     else if(c)say('Solte a carta na fileira destacada: '+laneNames[c.r]+'.');
+     else if(c)say('Solte a carta dentro da fileira destacada: '+laneNames[c.r]+'.');
    }
-   active.card.classList.remove('dragging');
-   if(ghost){ghost.remove();ghost=null;}
-   clearRowHighlights();active=null;lastTarget=null;lastPoint=null;
-   if(moved)setTimeout(()=>window.gwentWasDragged=false,180);
+   const didMove=moved;
+   try{if(hand.hasPointerCapture(e.pointerId))hand.releasePointerCapture(e.pointerId)}catch(_){}
+   cleanup();
+   if(didMove)setTimeout(()=>window.gwentWasDragged=false,220);
  };
- hand.addEventListener('pointerup',finish);hand.addEventListener('pointercancel',finish);
+ hand.addEventListener('pointerup',finish,{passive:false});
+ hand.addEventListener('pointercancel',e=>{
+   if(active&&active.pointerId===e.pointerId&&moved&&point){
+     const c=cardForDrag(active.id);
+     const target=document.elementFromPoint(point.x,point.y)?.closest('#playerRows .rowlane')||null;
+     if(c&&target&&+target.dataset.row===c.r)play(active.id,+target.dataset.row);
+   }
+   cleanup();
+ },{passive:false});
 })();
 
 document.getElementById('pass').onclick=pass;document.getElementById('next').onclick=next;document.getElementById('restart').onclick=fresh;fresh();
