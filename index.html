@@ -129,7 +129,7 @@ html,body{margin:0!important;padding:0!important;width:100%!important;overflow-x
 .rowlane.drop-valid{border:2px solid #a7d879!important;box-shadow:inset 0 0 0 2px #a7d87955,0 0 16px #7fc65c88!important;filter:brightness(1.25)}
 .rowlane.drop-invalid{opacity:.48;filter:saturate(.35)}
 .rowlane.drop-ready{background:linear-gradient(90deg,#31502b,#17251a)!important;transform:scale(1.006)}
-.card[draggable="true"]{touch-action:pan-x;user-select:none;-webkit-user-select:none;cursor:grab}
+.card[draggable="true"]{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab}
 .card.dragging{opacity:.55;transform:scale(.96)}
 .drag-ghost{position:fixed;z-index:99999;pointer-events:none;width:100px;height:145px;opacity:.9;transform:rotate(3deg);box-shadow:0 10px 30px #000b}
 @media(max-width:850px){.rowlane.drop-valid{box-shadow:inset 0 0 0 2px #a7d879,0 0 13px #7fc65c88!important}.rowlane.drop-invalid{opacity:.35}}
@@ -171,7 +171,7 @@ function next(){if(!state.ended||state.round>=3||state.pWins>=2||state.eWins>=2)
  hand.addEventListener('pointerdown',e=>{
    const card=e.target.closest('.card');if(!card||e.pointerType==='mouse')return;
    if(state.passed||state.ended||state.turn!=='player')return;
-   active={id:+card.dataset.id,card,pointerId:e.pointerId};startX=e.clientX;startY=e.clientY;moved=false;
+   active={id:+card.dataset.id,card,pointerId:e.pointerId};try{hand.setPointerCapture(e.pointerId)}catch(_){}startX=e.clientX;startY=e.clientY;moved=false;
  },{passive:true});
  hand.addEventListener('pointermove',e=>{
    if(!active||active.pointerId!==e.pointerId)return;
