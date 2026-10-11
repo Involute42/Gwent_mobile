@@ -177,7 +177,7 @@ function next(){if(!state.ended||state.round>=3||state.pWins>=2||state.eWins>=2)
  const frame=()=>{
    raf=0;if(!active||!moved||!point)return;
    const {x,y}=point;
-   if(ghost)ghost.style.transform='translate3d('+(x-50)+'px,'+(y-72)+'px,0) rotate(2deg)';
+   /* Ghost position is updated directly in pointermove; this frame only checks the target row. */
    const c=cardForDrag(active.id);
    const target=document.elementFromPoint(x,y)?.closest('#playerRows .rowlane')||null;
    if(c)paintTarget(target,c.r);
@@ -200,13 +200,14 @@ function next(){if(!state.ended||state.round>=3||state.pWins>=2||state.eWins>=2)
    if(!active||active.pointerId!==e.pointerId)return;
    if(e.cancelable)e.preventDefault();
    point={x:e.clientX,y:e.clientY};
+   if(ghost)ghost.style.transform='translate3d('+(e.clientX-50)+'px,'+(e.clientY-72)+'px,0) rotate(2deg)';
    if(!moved&&Math.hypot(e.clientX-startX,e.clientY-startY)<4)return;
    const c=cardForDrag(active.id);if(!c)return;
    if(!moved){
      moved=true;window.gwentWasDragged=true;window.gwentDraggingId=active.id;
      active.card.classList.add('dragging');
      ghost=active.card.cloneNode(true);ghost.classList.add('drag-ghost');
-     ghost.style.left='0px';ghost.style.top='0px';
+     ghost.style.left='0px';ghost.style.top='0px';ghost.style.transition='none';ghost.style.willChange='transform';
      ghost.style.transform='translate3d('+(e.clientX-50)+'px,'+(e.clientY-72)+'px,0)';
      document.body.appendChild(ghost);highlightRows(c.r);
    }
