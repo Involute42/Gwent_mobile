@@ -153,6 +153,17 @@ function artFor(c){
   return 'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg);
 }
 const laneNames=['CORPO A CORPO','DISTÂNCIA','CERCO'], laneIcons=['⚔','➶','♜'];let state;
+function findDropRow(x,y,validRow){
+ const rows=Array.from(document.querySelectorAll('#playerRows .rowlane'));
+ let best=null,bestDistance=Infinity;
+ for(const row of rows){
+  if(validRow!==undefined&&+row.dataset.row!==validRow)continue;
+  const r=row.getBoundingClientRect(),padX=34,padY=42;
+  const dx=Math.max(r.left-x,0,x-r.right),dy=Math.max(r.top-y,0,y-r.bottom);
+  if(dx<=padX&&dy<=padY){const distance=dx*dx+dy*dy;if(distance<bestDistance){best=row;bestDistance=distance;}}
+ }
+ return best;
+}
 function highlightRows(row){document.querySelectorAll('#playerRows .rowlane').forEach(el=>{el.classList.toggle('drop-valid',+el.dataset.row===row);el.classList.toggle('drop-invalid',+el.dataset.row!==row);});}function clearRowHighlights(){document.querySelectorAll('#playerRows .rowlane').forEach(el=>el.classList.remove('drop-valid','drop-invalid','drop-ready'));window.gwentDraggingId=0;}function cardForDrag(id){return state.hand.find(c=>c.id===id);}
 function fresh(){state={round:1,pWins:0,eWins:0,hand:shuffle(original),enemyHand:shuffle(foe),p:[],e:[],passed:false,enemyPassed:false,ended:false,turn:'player'};say('A partida começou. Você joga primeiro. Escolha uma carta ou passe.');render()}
 function shuffle(a){return [...a].sort(()=>Math.random()-.5)}function say(s){document.getElementById('status').textContent=s}function sum(a){return a.reduce((s,c)=>s+c.p,0)}
@@ -179,7 +190,7 @@ function next(){if(!state.ended||state.round>=3||state.pWins>=2||state.eWins>=2)
    const {x,y}=point;
    /* Ghost position is updated directly in pointermove; this frame only checks the target row. */
    const c=cardForDrag(active.id);
-   const target=document.elementFromPoint(x,y)?.closest('#playerRows .rowlane')||null;
+   const target=findDropRow(x,y,c?.r);
    if(c)paintTarget(target,c.r);
  };
  const cleanup=()=>{
@@ -219,7 +230,7 @@ function next(){if(!state.ended||state.round>=3||state.pWins>=2||state.eWins>=2)
    if(raf){cancelAnimationFrame(raf);raf=0;}
    if(moved){
      const c=cardForDrag(active.id);
-     const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('#playerRows .rowlane')||null;
+     const target=findDropRow(e.clientX,e.clientY,c?.r);
      if(c&&target&&+target.dataset.row===c.r)play(active.id,+target.dataset.row);
      else if(c)say('Solte a carta dentro da fileira destacada: '+laneNames[c.r]+'.');
    }
@@ -232,7 +243,7 @@ function next(){if(!state.ended||state.round>=3||state.pWins>=2||state.eWins>=2)
  hand.addEventListener('pointercancel',e=>{
    if(active&&active.pointerId===e.pointerId&&moved&&point){
      const c=cardForDrag(active.id);
-     const target=document.elementFromPoint(point.x,point.y)?.closest('#playerRows .rowlane')||null;
+     const target=findDropRow(point.x,point.y,c?.r);
      if(c&&target&&+target.dataset.row===c.r)play(active.id,+target.dataset.row);
    }
    cleanup();
