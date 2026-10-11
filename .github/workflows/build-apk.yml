@@ -1,9 +1,8 @@
 name: Build Android APK
 
 on:
+  # APK builds are manual only; web changes must not trigger Android builds.
   workflow_dispatch:
-  push:
-    branches: [ "main" ]
 
 permissions:
   contents: read
