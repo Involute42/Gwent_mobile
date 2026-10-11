@@ -134,7 +134,8 @@ html,body{margin:0!important;padding:0!important;width:100%!important;overflow-x
 .drag-ghost{position:fixed;left:0;top:0;margin:0!important;z-index:99999;pointer-events:none;width:100px;height:145px;opacity:.92;transform:translate3d(-200px,-200px,0);will-change:transform;contain:layout paint;box-shadow:0 10px 30px #000b}
 @media(max-width:850px){.rowlane.drop-valid{box-shadow:inset 0 0 0 2px #a7d879,0 0 13px #7fc65c88!important}.rowlane.drop-invalid{opacity:.35}}
 
-/* Fix: keep the hand visible in mobile layout */
+/* Emergency layout repair: preserve playable cards and battlefield */
+@media(max-width:850px){.hand-area{display:block!important;min-height:220px!important;overflow:visible!important}#hand{display:flex!important;flex-wrap:nowrap!important;align-items:flex-end!important;gap:0!important;min-height:165px!important;height:auto!important;width:100%!important;visibility:visible!important;opacity:1!important;overflow:visible!important;overflow-x:clip!important;padding:8px 3px 12px!important}#hand .card{display:flex!important;visibility:visible!important;opacity:1!important;flex:0 0 23%!important;width:23%!important;min-width:0!important;height:150px!important;margin-left:-7%!important;position:relative!important}#hand .card:first-child{margin-left:0!important}#playerRows,#enemyRows,.rows{display:flex!important;visibility:visible!important;flex-direction:column!important;min-height:1px!important}#hand .card .portrait{display:grid!important;visibility:visible!important;min-height:55px!important}}
 @media(max-width:850px){#hand{display:flex!important;min-height:155px!important;align-items:stretch!important;flex-wrap:nowrap!important;overflow:visible!important;overflow-x:clip!important;position:relative!important}#hand .card{display:flex!important;visibility:visible!important;opacity:1!important;flex:0 0 21%!important;width:21%!important;min-width:0!important;height:145px!important;margin-left:-8%!important;position:relative!important}#hand .card:first-child{margin-left:0!important}#hand .card.expanded{flex:0 0 62%!important;width:62%!important;height:250px!important;margin:0 5px!important;z-index:100!important}#hand .card .portrait{display:grid!important;visibility:visible!important;flex:1 1 auto!important;min-height:55px!important}#hand .card .card-name,#hand .card .power,#hand .card .card-type{display:block!important;visibility:visible!important}}
 /* Compact overlapping hand + tap-to-inspect card */
 #hand{display:flex!important;flex-wrap:nowrap!important;justify-content:flex-start!important;align-items:flex-end!important;gap:0!important;width:100%!important;max-width:100%!important;overflow:visible!important;overflow-x:clip!important;padding:8px 3px 10px!important;touch-action:pan-y!important}
@@ -174,28 +175,89 @@ function findDropRow(x,y,validRow){
  return best;
 }
 function highlightRows(row){document.querySelectorAll('#playerRows .rowlane').forEach(el=>{el.classList.toggle('drop-valid',+el.dataset.row===row);el.classList.toggle('drop-invalid',+el.dataset.row!==row);});}function clearRowHighlights(){document.querySelectorAll('#playerRows .rowlane').forEach(el=>el.classList.remove('drop-valid','drop-invalid','drop-ready'));window.gwentDraggingId=0;}function cardForDrag(id){return state.hand.find(c=>c.id===id);}
-function cardDescription(c){const d={1:'Herói lendário de Teméria. Sua força não é afetada por efeitos especiais.',2:'Feiticeira poderosa. Uma heroína que luta na fileira à distância.',3:'A Criança do Sangue Ancestral. Herói de força excepcional.',4:'Arqueiros treinados de Teméria, especializados em ataques à distância.',5:'Máquina de guerra pesada. Esta unidade pertence à fileira de cerco.',6:'Batedores rápidos que reforçam a linha de frente.',7:'Feiticeira experiente e aliada dos bruxos.',8:'Comandante que lidera as tropas do Norte.'};return d[c.id]||('Carta '+c.t.toLowerCase()+' com '+c.p+' de força. Fileira: '+laneNames[c.r]+'.');}\nfunction fresh(){state={round:1,expandedCardId:null,pWins:0,eWins:0,hand:shuffle(original),enemyHand:shuffle(foe),p:[],e:[],passed:false,enemyPassed:false,ended:false,turn:'player'};say('A partida começou. Você joga primeiro. Escolha uma carta ou passe.');render()}
+function fresh(){state={round:1,pWins:0,eWins:0,hand:shuffle(original),enemyHand:shuffle(foe),p:[],e:[],passed:false,enemyPassed:false,ended:false,turn:'player'};say('A partida começou. Você joga primeiro. Escolha uma carta ou passe.');render()}
 function shuffle(a){return [...a].sort(()=>Math.random()-.5)}function say(s){document.getElementById('status').textContent=s}function sum(a){return a.reduce((s,c)=>s+c.p,0)}
 function rowHTML(arr,enemy){return laneNames.map((name,i)=>`<div class="rowlane ${enemy?'enemy':''}" data-row="${i}" data-side="${enemy?'enemy':'player'}"><div class="lane-name"><div class="symbol">${laneIcons[i]}</div>${name}</div><div class="lane-score">${sum(arr.filter(c=>c.r===i))}</div><div class="slots">${arr.filter(c=>c.r===i).map(c=>`<div class="unit" style="background-image:linear-gradient(180deg,transparent 48%,#080706e8),url('${artFor(c)}');background-size:cover;background-position:center"><b>${c.p}</b><span>${c.n}</span></div>`).join('')||'<div class="empty">— fileira vazia —</div>'}</div></div>`).join('')}
-function render(){document.getElementById('round').textContent=state.round;document.getElementById('winsP').textContent=state.pWins;document.getElementById('winsE').textContent=state.eWins;document.getElementById('playerTotal').textContent=sum(state.p);document.getElementById('enemyTotal').textContent=sum(state.e);document.getElementById('playerCount').textContent=state.hand.length+' cartas na mão';document.getElementById('enemyCount').textContent=state.enemyHand.length+' cartas na mão';document.getElementById('playerGems').textContent='◆ '.repeat(Math.max(0,2-state.eWins));document.getElementById('enemyGems').textContent='◆ '.repeat(Math.max(0,2-state.pWins));document.getElementById('playerRows').innerHTML=rowHTML(state.p,false);document.getElementById('enemyRows').innerHTML=rowHTML(state.e,true);document.getElementById('hand').innerHTML=state.hand.map(c=>`<button class="card ${c.hero?'hero':''} ${state.expandedCardId===c.id?'expanded':''}" data-id="${c.id}" draggable="true" ${state.passed||state.ended||state.turn!=='player'?'disabled':''} aria-label="Ver detalhes de ${c.n}"><div class="portrait" style="background-image:linear-gradient(180deg,transparent 55%,#100d09aa),url('${artFor(c)}')"></div><div class="power">${c.p}</div><div class="card-name">${c.n}</div><div class="card-type">${c.t}</div><div class="card-description">${cardDescription(c)}</div></button>`).join('');document.querySelectorAll('.card').forEach(b=>{b.onclick=()=>{if(window.gwentTouchHandled){window.gwentTouchHandled=false;return;}if(window.gwentWasDragged){window.gwentWasDragged=false;return;}state.expandedCardId=state.expandedCardId===+b.dataset.id?null:+b.dataset.id;render();};b.ondragstart=e=>{const c=state.hand.find(x=>x.id===+b.dataset.id);if(!c||state.passed||state.ended||state.turn!=='player'){e.preventDefault();return;}e.dataTransfer.setData('text/plain',String(c.id));e.dataTransfer.effectAllowed='move';highlightRows(c.r);};b.ondragend=clearRowHighlights;});document.querySelectorAll('#playerRows .rowlane').forEach(row=>{row.ondragover=e=>{const id=+(e.dataTransfer.getData('text/plain')||window.gwentDraggingId||0);const c=state.hand.find(x=>x.id===id);if(c&&+row.dataset.row===c.r){e.preventDefault();e.dataTransfer.dropEffect='move';highlightRows(c.r);}};row.ondragenter=()=>{const c=state.hand.find(x=>x.id===+(window.gwentDraggingId||0));if(c&&+row.dataset.row===c.r)row.classList.add('drop-ready');};row.ondragleave=e=>{if(!row.contains(e.relatedTarget))row.classList.remove('drop-ready');};row.ondrop=e=>{e.preventDefault();const id=+(e.dataTransfer.getData('text/plain')||window.gwentDraggingId||0);const c=state.hand.find(x=>x.id===id);if(c&&+row.dataset.row===c.r)play(id);clearRowHighlights();};});document.getElementById('pass').disabled=state.passed||state.ended||state.turn!=='player';document.getElementById('next').hidden=!(state.ended&&state.round<3&&state.pWins<2&&state.eWins<2);document.getElementById('restart').hidden=!state.ended;document.getElementById('pass').hidden=state.ended;}
+function render(){document.getElementById('round').textContent=state.round;document.getElementById('winsP').textContent=state.pWins;document.getElementById('winsE').textContent=state.eWins;document.getElementById('playerTotal').textContent=sum(state.p);document.getElementById('enemyTotal').textContent=sum(state.e);document.getElementById('playerCount').textContent=state.hand.length+' cartas na mão';document.getElementById('enemyCount').textContent=state.enemyHand.length+' cartas na mão';document.getElementById('playerGems').textContent='◆ '.repeat(Math.max(0,2-state.eWins));document.getElementById('enemyGems').textContent='◆ '.repeat(Math.max(0,2-state.pWins));document.getElementById('playerRows').innerHTML=rowHTML(state.p,false);document.getElementById('enemyRows').innerHTML=rowHTML(state.e,true);document.getElementById('hand').innerHTML=state.hand.map(c=>`<button class="card ${c.hero?'hero':''}" data-id="${c.id}" draggable="true" ${state.passed||state.ended||state.turn!=='player'?'disabled':''} aria-label="Jogar ${c.n}"><div class="portrait" style="background-image:linear-gradient(180deg,transparent 55%,#100d09aa),url('${artFor(c)}')"></div><div class="power">${c.p}</div><div class="card-name">${c.n}</div><div class="card-type">${c.t}</div></button>`).join('');document.querySelectorAll('.card').forEach(b=>{b.onclick=()=>{if(window.gwentWasDragged){window.gwentWasDragged=false;return;}play(+b.dataset.id)};b.ondragstart=e=>{const c=state.hand.find(x=>x.id===+b.dataset.id);if(!c||state.passed||state.ended||state.turn!=='player'){e.preventDefault();return;}e.dataTransfer.setData('text/plain',String(c.id));e.dataTransfer.effectAllowed='move';highlightRows(c.r);};b.ondragend=clearRowHighlights;});document.querySelectorAll('#playerRows .rowlane').forEach(row=>{row.ondragover=e=>{const id=+(e.dataTransfer.getData('text/plain')||window.gwentDraggingId||0);const c=state.hand.find(x=>x.id===id);if(c&&+row.dataset.row===c.r){e.preventDefault();e.dataTransfer.dropEffect='move';highlightRows(c.r);}};row.ondragenter=()=>{const c=state.hand.find(x=>x.id===+(window.gwentDraggingId||0));if(c&&+row.dataset.row===c.r)row.classList.add('drop-ready');};row.ondragleave=e=>{if(!row.contains(e.relatedTarget))row.classList.remove('drop-ready');};row.ondrop=e=>{e.preventDefault();const id=+(e.dataTransfer.getData('text/plain')||window.gwentDraggingId||0);const c=state.hand.find(x=>x.id===id);if(c&&+row.dataset.row===c.r)play(id);clearRowHighlights();};});document.getElementById('pass').disabled=state.passed||state.ended||state.turn!=='player';document.getElementById('next').hidden=!(state.ended&&state.round<3&&state.pWins<2&&state.eWins<2);document.getElementById('restart').hidden=!state.ended;document.getElementById('pass').hidden=state.ended;}
 function enemyMove(){if(state.ended||state.enemyPassed)return; if(!state.enemyHand.length){state.enemyPassed=true;finishIfBothPassed();return;}let ps=sum(state.p),es=sum(state.e);if(state.passed && es>=ps){state.enemyPassed=true;finishIfBothPassed();return;}if(!state.passed && es>ps+4 && Math.random()<.35){state.enemyPassed=true;say('Nilfgaard passou a vez e guardará as cartas restantes.');finishIfBothPassed();return;}let idx=state.enemyHand.reduce((best,x,j)=>x.p>state.enemyHand[best].p?j:best,0);let c=state.enemyHand.splice(idx,1)[0];state.e.push(c);state.turn='player';say(`Nilfgaard jogou ${c.n} (${c.p} de força). Sua vez: jogue uma carta ou passe.`);render();}
 function play(id,targetRow){if(state.passed||state.ended||state.turn!=='player')return;let i=state.hand.findIndex(c=>c.id===id);if(i<0)return;let c=state.hand[i];if(targetRow!==undefined&&targetRow!==c.r){say('Essa carta só pode ser colocada na fileira '+laneNames[c.r]+'.');return;}c=state.hand.splice(i,1)[0];state.p.push(c);state.turn='enemy';say(`Você jogou ${c.n} (${c.p} de força). Vez de Nilfgaard…`);render();setTimeout(()=>{if(state.turn==='enemy')enemyMove()},450)}
 function pass(){if(state.passed||state.ended||state.turn!=='player')return;state.passed=true;state.turn='enemy';say('Você passou. Nilfgaard continuará jogando enquanto achar necessário.');render();let loops=0;function tick(){if(state.ended||state.enemyPassed)return;if(!state.enemyHand.length){state.enemyPassed=true;finishIfBothPassed();return;}if(sum(state.e)>=sum(state.p)){state.enemyPassed=true;finishIfBothPassed();return;}let idx=state.enemyHand.reduce((best,x,j)=>x.p>state.enemyHand[best].p?j:best,0);let c=state.enemyHand.splice(idx,1)[0];state.e.push(c);say(`Você passou. Nilfgaard jogou ${c.n} (${c.p}).`);render();loops++;if(sum(state.e)>=sum(state.p)||!state.enemyHand.length){state.enemyPassed=true;finishIfBothPassed()}else setTimeout(tick,350)}setTimeout(tick,350)}
 function finishIfBothPassed(){if(!state.passed||!state.enemyPassed)return;let p=sum(state.p),e=sum(state.e);if(p>e)state.pWins++;else if(e>p)state.eWins++;else{state.pWins++;state.eWins++;}state.ended=true;let result=p===e?`Empate na rodada (${p} a ${e}).`:p>e?`Você venceu a rodada por ${p} a ${e}.`:`Nilfgaard venceu a rodada por ${e} a ${p}.`;if(state.pWins>=2||state.eWins>=2||state.round===3){result+=state.pWins===state.eWins?' Partida empatada!':state.pWins>state.eWins?' Vitória na partida!':' Derrota na partida.';}else result+=' A rodada terminou. Veja o placar e avance quando estiver pronto.';say(result);render()}
 function next(){if(!state.ended||state.round>=3||state.pWins>=2||state.eWins>=2)return;state.round++;state.p=[];state.e=[];state.passed=false;state.enemyPassed=false;state.ended=false;state.turn='player';say('Rodada '+state.round+'. As cartas restantes continuam na mão; escolha sua jogada.');render()}
 
-// Tap a card to inspect it; hold briefly and move to drag it to the battlefield.
+// Stable touch drag: capture pointer, avoid browser scroll cancellation, and commit on pointerup.
 (function installTouchDrag(){
- let active=null,ghost=null,startX=0,startY=0,moved=false,lastTarget=null,raf=0,point=null,holdTimer=null;
- const hand=document.getElementById('hand');const rowEls=()=>Array.from(document.querySelectorAll('#playerRows .rowlane'));
- const paintTarget=(target,row)=>{if(target===lastTarget)return;rowEls().forEach(el=>el.classList.toggle('drop-ready',el===target&&+el.dataset.row===row));lastTarget=target;};
- const beginDrag=e=>{if(!active||moved)return;const c=cardForDrag(active.id);if(!c)return;moved=true;window.gwentWasDragged=true;window.gwentDraggingId=active.id;active.card.classList.add('dragging');ghost=active.card.cloneNode(true);ghost.classList.remove('expanded');ghost.classList.add('drag-ghost');ghost.style.left='0px';ghost.style.top='0px';ghost.style.transition='none';ghost.style.willChange='transform';ghost.style.transform='translate3d('+(e.clientX-50)+'px,'+(e.clientY-72)+'px,0)';document.body.appendChild(ghost);highlightRows(c.r);};
- const frame=()=>{raf=0;if(!active||!moved||!point)return;const c=cardForDrag(active.id),target=findDropRow(point.x,point.y,c?.r);if(c)paintTarget(target,c.r);};
- const cleanup=()=>{if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}if(raf){cancelAnimationFrame(raf);raf=0;}if(active?.card)active.card.classList.remove('dragging');if(ghost){ghost.remove();ghost=null;}clearRowHighlights();active=null;lastTarget=null;point=null;};
- hand.addEventListener('pointerdown',e=>{const card=e.target.closest('.card');if(!card||e.pointerType==='mouse'||e.button!==0)return;if(state.passed||state.ended||state.turn!=='player')return;active={id:+card.dataset.id,card,pointerId:e.pointerId};startX=e.clientX;startY=e.clientY;moved=false;lastTarget=null;point={x:e.clientX,y:e.clientY};try{hand.setPointerCapture(e.pointerId)}catch(_){}holdTimer=setTimeout(()=>{if(active&&active.pointerId===e.pointerId)beginDrag({clientX:point.x,clientY:point.y});},180);},{passive:false});
- hand.addEventListener('pointermove',e=>{if(!active||active.pointerId!==e.pointerId)return;point={x:e.clientX,y:e.clientY};if(!moved&&Math.hypot(e.clientX-startX,e.clientY-startY)>10){if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}return;}if(moved){if(e.cancelable)e.preventDefault();if(ghost)ghost.style.transform='translate3d('+(e.clientX-50)+'px,'+(e.clientY-72)+'px,0) rotate(2deg)';if(!raf)raf=requestAnimationFrame(frame);}},{passive:false});
- const finish=e=>{if(!active||active.pointerId!==e.pointerId)return;if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}if(e.cancelable&&moved)e.preventDefault();if(raf){cancelAnimationFrame(raf);raf=0;}if(moved){const c=cardForDrag(active.id),target=findDropRow(e.clientX,e.clientY,c?.r);if(c&&target&&+target.dataset.row===c.r)play(active.id,+target.dataset.row);else if(c)say('Solte a carta perto da fileira destacada: '+laneNames[c.r]+'.');}else{const id=active.id;state.expandedCardId=state.expandedCardId===id?null:id;window.gwentTouchHandled=true;setTimeout(()=>window.gwentTouchHandled=false,400);}const didMove=moved;try{if(hand.hasPointerCapture(e.pointerId))hand.releasePointerCapture(e.pointerId)}catch(_){}cleanup();if(didMove)setTimeout(()=>window.gwentWasDragged=false,220);else render();};
- hand.addEventListener('pointerup',finish,{passive:false});hand.addEventListener('pointercancel',e=>{if(active&&active.pointerId===e.pointerId&&moved&&point){const c=cardForDrag(active.id),target=findDropRow(point.x,point.y,c?.r);if(c&&target&&+target.dataset.row===c.r)play(active.id,+target.dataset.row);}cleanup();},{passive:false});
+ let active=null,ghost=null,startX=0,startY=0,moved=false,lastTarget=null,raf=0,point=null;
+ const hand=document.getElementById('hand');
+ const rowEls=()=>Array.from(document.querySelectorAll('#playerRows .rowlane'));
+ const paintTarget=(target,row)=>{
+   if(target===lastTarget)return;
+   rowEls().forEach(el=>el.classList.toggle('drop-ready',el===target&&+el.dataset.row===row));
+   lastTarget=target;
+ };
+ const frame=()=>{
+   raf=0;if(!active||!moved||!point)return;
+   const {x,y}=point;
+   /* Ghost position is updated directly in pointermove; this frame only checks the target row. */
+   const c=cardForDrag(active.id);
+   const target=findDropRow(x,y,c?.r);
+   if(c)paintTarget(target,c.r);
+ };
+ const cleanup=()=>{
+   if(raf){cancelAnimationFrame(raf);raf=0;}
+   if(active?.card)active.card.classList.remove('dragging');
+   if(ghost){ghost.remove();ghost=null;}
+   clearRowHighlights();active=null;lastTarget=null;point=null;
+ };
+ hand.addEventListener('pointerdown',e=>{
+   const card=e.target.closest('.card');
+   if(!card||e.pointerType==='mouse'||e.button!==0)return;
+   if(state.passed||state.ended||state.turn!=='player')return;
+   active={id:+card.dataset.id,card,pointerId:e.pointerId};
+   startX=e.clientX;startY=e.clientY;moved=false;lastTarget=null;point={x:e.clientX,y:e.clientY};
+   try{hand.setPointerCapture(e.pointerId)}catch(_){}
+ },{passive:false});
+ hand.addEventListener('pointermove',e=>{
+   if(!active||active.pointerId!==e.pointerId)return;
+   if(e.cancelable)e.preventDefault();
+   point={x:e.clientX,y:e.clientY};
+   if(ghost)ghost.style.transform='translate3d('+(e.clientX-50)+'px,'+(e.clientY-72)+'px,0) rotate(2deg)';
+   if(!moved&&Math.hypot(e.clientX-startX,e.clientY-startY)<4)return;
+   const c=cardForDrag(active.id);if(!c)return;
+   if(!moved){
+     moved=true;window.gwentWasDragged=true;window.gwentDraggingId=active.id;
+     active.card.classList.add('dragging');
+     ghost=active.card.cloneNode(true);ghost.classList.add('drag-ghost');
+     ghost.style.left='0px';ghost.style.top='0px';ghost.style.transition='none';ghost.style.willChange='transform';
+     ghost.style.transform='translate3d('+(e.clientX-50)+'px,'+(e.clientY-72)+'px,0)';
+     document.body.appendChild(ghost);highlightRows(c.r);
+   }
+   if(!raf)raf=requestAnimationFrame(frame);
+ },{passive:false});
+ const finish=e=>{
+   if(!active||active.pointerId!==e.pointerId)return;
+   if(e.cancelable)e.preventDefault();
+   if(raf){cancelAnimationFrame(raf);raf=0;}
+   if(moved){
+     const c=cardForDrag(active.id);
+     const target=findDropRow(e.clientX,e.clientY,c?.r);
+     if(c&&target&&+target.dataset.row===c.r)play(active.id,+target.dataset.row);
+     else if(c)say('Solte a carta dentro da fileira destacada: '+laneNames[c.r]+'.');
+   }
+   const didMove=moved;
+   try{if(hand.hasPointerCapture(e.pointerId))hand.releasePointerCapture(e.pointerId)}catch(_){}
+   cleanup();
+   if(didMove)setTimeout(()=>window.gwentWasDragged=false,220);
+ };
+ hand.addEventListener('pointerup',finish,{passive:false});
+ hand.addEventListener('pointercancel',e=>{
+   if(active&&active.pointerId===e.pointerId&&moved&&point){
+     const c=cardForDrag(active.id);
+     const target=findDropRow(point.x,point.y,c?.r);
+     if(c&&target&&+target.dataset.row===c.r)play(active.id,+target.dataset.row);
+   }
+   cleanup();
+ },{passive:false});
 })();
 
 document.getElementById('pass').onclick=pass;document.getElementById('next').onclick=next;document.getElementById('restart').onclick=fresh;fresh();
